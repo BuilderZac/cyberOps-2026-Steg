@@ -1,12 +1,16 @@
+from PIL import Image
+
+
 class crypto:
     """
     Adds all crypto methods. Uses an internal buffer for most operations.
 
     Attributes:
         key (string): the current saved key
-        outputBuffer (): the current images ready for output
+        buffer (Image[]): the current images ready for output
     """
     key = ""
+    buffer = []
 
     def __init__(self, key: str = None):
         """
@@ -17,46 +21,52 @@ class crypto:
         """
         self.key = key
 
-    def basicEncode(source):
+    def basicEncode(self, source: Image):
         """
         Takes a single image to split it apart and puts it in the outputBuffer
 
         Args:
-            source (): The original image
+            source (Image): The original image
         """
+        r, g, b = source.split()
+        self.buffer.append(r)
+        self.buffer.append(g)
+        self.buffer.append(b)
 
-    def bufferImport(imageList):
+    def bufferImport(self, imageList):
         """
         Force adds images to the buffer. Can be a list of 1 image.
 
         Args:
-            imageList (): list of images to add
+            imageList (Image[]): list of images to add
         """
 
-    def basicDecode():
+    def basicDecode(self):
         """
         Tries to remerge all images in the buffer.
         """
 
-    def setKey(key):
+    def setKey(self, key):
         """
         Sets a new key overwriting a old or none existent one.
 
         Args:
             key (string): the new key to use
         """
+        self.key = key
 
-    def keyOutput():
+    def keyOutput(self):
         """
         Applies a cipher using the set key to the images in the buffer.
         """
 
-    def dekeyOutput():
+    def dekeyOutput(self):
         """
         Undoes the symmetric cipher using the set key to the images in the buffer.
         """
 
-    def returnOutput():
+    def returnOutput(self):
         """
         Returns a list of all images in the buffer.
         """
+        return self.buffer
