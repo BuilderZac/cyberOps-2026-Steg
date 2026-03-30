@@ -24,7 +24,7 @@ Pixel preprocessing
 Image utilities module  
 Preprocessing pipeline  
 
-## Person 3 — CLI & Integration
+## Person 3 — CLI & Integration - Ryan
 ### Responsibilities:
 Command-line interface  
 Argument parsing  
