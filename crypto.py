@@ -65,8 +65,14 @@ class crypto:
         Undoes the symmetric cipher using the set key to the images in the buffer.
         """
 
-    def returnOutput(self):
+    def returnBuffer(self):
         """
         Returns a list of all images in the buffer.
         """
         return self.buffer
+
+    def clearBuffer(self):
+        """
+        Clears the buffer back to an empty list.
+        """
+        self.buffer = []
