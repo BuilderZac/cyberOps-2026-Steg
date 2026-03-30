@@ -1,6 +1,6 @@
 # Work Distribution
 
-## Person 1 — Algorithm & Cryptography
+## Person 1 — Algorithm & Cryptography - Zac
 ### Responsibilities:
 Visual cryptography logic  
 Pixel expansion rules  
@@ -8,9 +8,10 @@ Share generation
 Reconstruction logic  
 
 ### Deliverables:
+Correctness tests  
+crypto object with methods:  
 encode_secret(...)  
 decode_shares(...)  
-Correctness tests  
 
 ## Person 2 — Image Processing
 ### Responsibilities:
