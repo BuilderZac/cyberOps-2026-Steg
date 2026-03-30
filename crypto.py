@@ -1,4 +1,5 @@
 from PIL import Image
+from numpy import array, argsort
 
 
 class crypto:
@@ -19,9 +20,9 @@ class crypto:
         __init__: creates the object (NT)
         basicEncode: take a PIL Image & breaks it to RGB in the buffer (NT)
         bufferImport: adds a list of images to the buffer (NT)
-        basicDecode: remerges everything in buffer (NS)
+        basicDecode: remerges everything in buffer (NT)
         setKey: sets a text key for the cipher to use (NT)
-        keyBuffer: applies cipher to the buffered images using key (NS)
+        keyBuffer: applies cipher to the buffered images using key (WIP)
         dekeyBuffer: undoes the cipher with the key (NS)
         returnBuffer: returns the buffer as a list of PIL Images (NT)
         clearBuffer: Emptys out the buffer (NT)
@@ -64,6 +65,23 @@ class crypto:
         """
         Tries to remerge all images in the buffer.
         """
+        means = [array(i).mean() for i in self.buffer]
+        r = g = b = None
+        for i, m in enumerate(means):
+            if m > 0:
+                if r is None:
+                    r = self.buffer[i]
+                elif g is None:
+                    g = self.buffer[i]
+                elif b is None:
+                    b = self.buffer[i]
+
+        if None in (r, g, b):
+            raise ValueError(
+                "Could not identify all three channels in buffer.")
+
+        merged = Image.merge("RGB", (r, g, b))
+        self.buffer = [merged]
 
     def setKey(self, key):
         """
@@ -78,6 +96,14 @@ class crypto:
         """
         Applies a cipher using the set key to the images in the buffer.
         """
+        temBuffer = []
+        size = 0
+        for i in self.buffer:
+            size = i.size
+            imageData = i.tobytes()
+            reconstructed = Image.frombytes("RGB", size, imageData)
+            temBuffer.append(reconstructed)
+        self.buffer = temBuffer
 
     def dekeyBuffer(self):
         """
