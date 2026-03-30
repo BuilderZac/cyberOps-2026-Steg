@@ -40,7 +40,7 @@ crypto object with methods:
 encode_secret(...)  
 decode_shares(...)  
 
-## Person 2 — Image Processing
+## Person 2 — Image Processing - Dan
 ### Responsibilities:
 Image I/O (PNG handling)  
 Black/white conversion  
@@ -63,7 +63,7 @@ CLI commands
 Help menu  
 Integration of modules  
 
-## Person 4 — Testing & Documentation
+## Person 4 — Testing & Documentation - Pop
 ### Responsibilities:
 Test cases  
 Sample images  
