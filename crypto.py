@@ -4,10 +4,27 @@ from PIL import Image
 class crypto:
     """
     Adds all crypto methods. Uses an internal buffer for most operations.
+    I = Complete
+    NS = Not Started
+    WIP = WIP
+    NT = Needs Testing
+    B = Bugged
+    NA = Not Avalible
 
     Attributes:
         key (string): the current saved key
         buffer (Image[]): the current images ready for output
+
+    Methods:
+        __init__: creates the object (NT)
+        basicEncode: take a PIL Image & breaks it to RGB in the buffer (NT)
+        bufferImport: adds a list of images to the buffer (NT)
+        basicDecode: remerges everything in buffer (NS)
+        setKey: sets a text key for the cipher to use (NT)
+        keyBuffer: applies cipher to the buffered images using key (NS)
+        dekeyBuffer: undoes the cipher with the key (NS)
+        returnBuffer: returns the buffer as a list of PIL Images (NT)
+        clearBuffer: Emptys out the buffer (NT)
     """
     key = ""
     buffer = []
@@ -40,6 +57,8 @@ class crypto:
         Args:
             imageList (Image[]): list of images to add
         """
+        for i in imageList:
+            self.buffer.append(i)
 
     def basicDecode(self):
         """
@@ -55,12 +74,12 @@ class crypto:
         """
         self.key = key
 
-    def keyOutput(self):
+    def keyBuffer(self):
         """
         Applies a cipher using the set key to the images in the buffer.
         """
 
-    def dekeyOutput(self):
+    def dekeyBuffer(self):
         """
         Undoes the symmetric cipher using the set key to the images in the buffer.
         """
