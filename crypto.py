@@ -1,12 +1,11 @@
 from PIL import Image
-from numpy import array, argsort
+from numpy import array
 
 
 class crypto:
     """
     Adds all crypto methods. Uses an internal buffer for most operations.
     I = Complete
-    NS = Not Started
     WIP = WIP
     NT = Needs Testing
     B = Bugged
@@ -23,7 +22,7 @@ class crypto:
         basicDecode: remerges everything in buffer (NT)
         setKey: sets a text key for the cipher to use (NT)
         keyBuffer: applies cipher to the buffered images using key (WIP)
-        dekeyBuffer: undoes the cipher with the key (NS)
+        dekeyBuffer: undoes the cipher with the key (WIP)
         returnBuffer: returns the buffer as a list of PIL Images (NT)
         clearBuffer: Emptys out the buffer (NT)
     """
@@ -101,6 +100,9 @@ class crypto:
         for i in self.buffer:
             size = i.size
             imageData = i.tobytes()
+
+            # cipher here
+
             reconstructed = Image.frombytes("RGB", size, imageData)
             temBuffer.append(reconstructed)
         self.buffer = temBuffer
@@ -109,6 +111,17 @@ class crypto:
         """
         Undoes the symmetric cipher using the set key to the images in the buffer.
         """
+        temBuffer = []
+        size = 0
+        for i in self.buffer:
+            size = i.size
+            imageData = i.tobytes()
+
+            # cipher here
+
+            reconstructed = Image.frombytes("RGB", size, imageData)
+            temBuffer.append(reconstructed)
+        self.buffer = temBuffer
 
     def returnBuffer(self):
         """
