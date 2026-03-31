@@ -26,7 +26,8 @@ Generate shares
 Combine shares to reconstruct  
 
 # Demo
-![testImage](testImage.jpg){ width=50% }
+<img src="testImage.jpg" width="350"/>
+
 
 ### Place holder for a keyed share
 
