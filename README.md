@@ -25,6 +25,8 @@ Convert to black/white
 Generate shares  
 Combine shares to reconstruct  
 
+![testImage](testImage.jpg)
+
 # Work Distribution
 
 ## Person 1 — Algorithm & Cryptography - Zac
