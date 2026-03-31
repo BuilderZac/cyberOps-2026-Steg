@@ -25,9 +25,10 @@ Convert to black/white
 Generate shares  
 Combine shares to reconstruct  
 
-![testImage](testImage.jpg)
+# Demo
+![testImage](testImage.jpg){ width=50% }
 
-# Place holder for a keyed share
+### Place holder for a keyed share
 
 # Work Distribution
 
