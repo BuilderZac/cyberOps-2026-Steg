@@ -27,6 +27,8 @@ Combine shares to reconstruct
 
 ![testImage](testImage.jpg)
 
+# Place holder for a keyed share
+
 # Work Distribution
 
 ## Person 1 — Algorithm & Cryptography - Zac
