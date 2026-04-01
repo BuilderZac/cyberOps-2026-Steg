@@ -11,8 +11,8 @@ validate: Ensure correct inputs and formats
 
 ## Recommended Scope  
 ### Base Requirement  
-Black-and-white image visual cryptography  
-2-out-of-2 scheme  
+Breaks apart the image into shares
+Shares can be encrypted
 ### Extension (choose ONE)  
 3-out-of-4 scheme  
 Text/QR: image secrets  
