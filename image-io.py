@@ -44,6 +44,7 @@ def load_image(image_path: str) -> Image.Image:
 def _sanitize_filename(filename: str) -> str:
     """
     Remove directory components and enforce a safe filename.
+    Returns a sanitized version of the filename.
     """
     filename = os.path.basename(filename)
 
@@ -62,7 +63,7 @@ def save_image(
     output_dir: Optional[str] = None
 ) -> str:
     """
-    Save a PIL Image safely to disk.
+    Save a PIL Image safely to disk. Returns the full file path as a str.
     """
     if not isinstance(image, Image.Image):
         raise TypeError("Expected a PIL Image object")
@@ -87,7 +88,7 @@ def save_images(
     prefix: str = "share"
 ) -> List[str]:
     """
-    Save multiple PIL Images safely.
+    Save multiple PIL Images safely. Returns a list of full file path strings.
     """
     if not images:
         raise ValueError("No images to save")
