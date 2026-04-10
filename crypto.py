@@ -1,5 +1,8 @@
 from PIL import Image
-from numpy import array
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
+import os
+import hashlib
 
 
 class crypto:
@@ -26,10 +29,8 @@ class crypto:
         returnBuffer: returns the buffer as a list of PIL Images (NT)
         clearBuffer: Emptys out the buffer (NT)
     """
-    key = ""
-    buffer = []
 
-    def __init__(self, key: str = None):
+    def __init__(self, key: str = ""):
         """
         Initiates the crypto system.
 
@@ -37,6 +38,7 @@ class crypto:
             key (string): can be passed a starting key
         """
         self.key = key
+        self.buffer = []
 
     def basicEncode(self, source: Image):
         """
@@ -62,75 +64,206 @@ class crypto:
 
     def basicDecode(self):
         """
-        Tries to remerge all images in the buffer.
+        Remerges the first three images in the buffer as R,G,B.
         """
-        means = [array(i).mean() for i in self.buffer]
-        r = g = b = None
-        for i, m in enumerate(means):
-            if m > 0:
-                if r is None:
-                    r = self.buffer[i]
-                elif g is None:
-                    g = self.buffer[i]
-                elif b is None:
-                    b = self.buffer[i]
-
-        if None in (r, g, b):
-            raise ValueError(
-                "Could not identify all three channels in buffer.")
-
+        if len(self.buffer) < 3:
+            raise ValueError("Buffer does not contain three channels.")
+        r, g, b = self.buffer[:3]
         merged = Image.merge("RGB", (r, g, b))
         self.buffer = [merged]
+
+    @staticmethod
+    def generateKey():
+        """
+        Generates a random 32-byte key, returns it as a hex string suitable for setKey().
+        """
+        key_bytes = os.urandom(32)
+        return key_bytes.hex()
 
     def setKey(self, key):
         """
         Sets a new key overwriting a old or none existent one.
-
         Args:
-            key (string): the new key to use
+            key (string or bytes): the new key to use. If hex string, it's converted to bytes.
         """
-        self.key = key
+        if isinstance(key, str):
+            # Accept hex or utf-8 string for compatibility
+            try:
+                # Try to parse as hex string
+                self.key = bytes.fromhex(key)
+            except ValueError:
+                self.key = key.encode('utf-8')
+        else:
+            self.key = key
 
     def keyBuffer(self):
         """
-        Applies a cipher using the set key to the images in the buffer.
+        Applies a simple XOR cipher using the set key to the images in the buffer.
+        The method works in-place and assumes color images (mode "RGB") for simplicity.
         """
+        if not self.key:
+            raise ValueError(
+                "No key set. Use setKey() to set a key before ciphering.")
+
+        key_bytes = self.key if isinstance(
+            self.key, bytes) else self.key.encode('utf-8')
+        key_len = len(key_bytes)
         temBuffer = []
-        size = 0
-        for i in self.buffer:
-            size = i.size
-            imageData = i.tobytes()
 
-            # cipher here
+        for img in self.buffer:
+            size = img.size
+            mode = img.mode
+            imageData = img.tobytes()
+            ciphered = bytearray(len(imageData))
 
-            reconstructed = Image.frombytes("RGB", size, imageData)
+            for idx, byte in enumerate(imageData):
+                ciphered[idx] = byte ^ key_bytes[idx % key_len]
+
+            reconstructed = Image.frombytes(mode, size, bytes(ciphered))
             temBuffer.append(reconstructed)
         self.buffer = temBuffer
 
     def dekeyBuffer(self):
         """
-        Undoes the symmetric cipher using the set key to the images in the buffer.
+        Undoes the XOR cipher using the set key to the images in the buffer.
+        This is identical to keyBuffer since XOR is symmetric.
         """
+        if not self.key:
+            raise ValueError(
+                "No key set. Use setKey() to set a key before deciphering.")
+
+        key_bytes = self.key if isinstance(
+            self.key, bytes) else self.key.encode('utf-8')
+        key_len = len(key_bytes)
         temBuffer = []
-        size = 0
-        for i in self.buffer:
-            size = i.size
-            imageData = i.tobytes()
 
-            # cipher here
+        for img in self.buffer:
+            size = img.size
+            mode = img.mode
+            imageData = img.tobytes()
+            deciphered = bytearray(len(imageData))
 
-            reconstructed = Image.frombytes("RGB", size, imageData)
+            for idx, byte in enumerate(imageData):
+                deciphered[idx] = byte ^ key_bytes[idx % key_len]
+
+            reconstructed = Image.frombytes(mode, size, bytes(deciphered))
             temBuffer.append(reconstructed)
+        self.buffer = temBuffer
+
+    def aesEncryptBuffer(self):
+        """
+        Encrypts each image in the buffer using AES-CTR.
+        The nonce is prepended to the ciphertext for each channel.
+        """
+        if not self.key or len(self.key) != 32:
+            raise ValueError("AES-CTR requires a 32-byte key.")
+
+        temBuffer = []
+
+        for img in self.buffer:
+            size = img.size
+            mode = img.mode
+            data = img.tobytes()
+            nonce = os.urandom(16)
+            cipher = Cipher(algorithms.AES(self.key), modes.CTR(
+                nonce), backend=default_backend())
+            encryptor = cipher.encryptor()
+            ciphertext = encryptor.update(data) + encryptor.finalize()
+            temBuffer.append((nonce + ciphertext, size, mode))
+        self.buffer = temBuffer
+
+    def aesDecryptBuffer(self):
+        """
+        Decrypts each image in the buffer using AES-CTR.
+        Assumes each entry is a (nonce+ciphertext, size, mode) tuple.
+        """
+        if not self.key or len(self.key) != 32:
+            raise ValueError("AES-CTR requires a 32-byte key.")
+
+        temBuffer = []
+
+        for item in self.buffer:
+            data, size, mode = item
+            nonce = data[:16]
+            ciphertext = data[16:]
+            cipher = Cipher(algorithms.AES(self.key), modes.CTR(
+                nonce), backend=default_backend())
+            decryptor = cipher.decryptor()
+            plain = decryptor.update(ciphertext) + decryptor.finalize()
+            img = Image.frombytes(mode, size, plain)
+            temBuffer.append(img)
         self.buffer = temBuffer
 
     def returnBuffer(self):
         """
         Returns a list of all images in the buffer.
+        If buffer holds encrypted (nonce+ciphertext, size, mode) tuples,
+        returns noise images suitable for saving or visualization.
         """
-        return self.buffer
+        result = []
+        if len(self.buffer) == 0:
+            return result
+        # Check if the first buffer item is a tuple from AES encryption
+        if isinstance(self.buffer[0], tuple):
+            for data, size, mode in self.buffer:
+                # Extract ciphertext (skip nonce)
+                ciphertext = data[16:]
+                # Form a "noise" image from ciphertext bytes
+                noise_img = Image.frombytes(mode, size, ciphertext)
+                result.append(noise_img)
+        else:
+            result = list(self.buffer)
+        return result
 
     def clearBuffer(self):
         """
         Clears the buffer back to an empty list.
         """
         self.buffer = []
+
+    @staticmethod
+    def derive_nonce(key):
+        """Deterministically derive a 16-byte nonce from a 32-byte key."""
+        key_bytes = key if isinstance(key, bytes) else bytes.fromhex(key)
+        return hashlib.sha256(key_bytes).digest()[:16]
+
+    def encrypt_and_save_channels(self, image, out_prefix=""):
+        """Split image to R/G/B, encrypt each with AES-CTR (shared nonce), save as PNGs."""
+        self.basicEncode(image)
+        nonce = self.derive_nonce(self.key)
+        channel_names = ['R', 'G', 'B']
+        from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+        from cryptography.hazmat.backends import default_backend
+        for idx, img in enumerate(self.buffer):
+            size = img.size
+            mode = img.mode
+            data = img.tobytes()
+            cipher = Cipher(algorithms.AES(self.key), modes.CTR(
+                nonce), backend=default_backend())
+            encryptor = cipher.encryptor()
+            ciphertext = encryptor.update(data) + encryptor.finalize()
+            noise_img = Image.frombytes(mode, size, ciphertext)
+            noise_img.save(f"{out_prefix}{channel_names[idx]}.png")
+        self.clearBuffer()
+
+    def load_and_decrypt_channels(self, key, in_prefix=""):
+        """Load R/G/B PNGs, decrypt with AES-CTR (shared nonce), reconstruct image in buffer."""
+        channel_names = ['R', 'G', 'B']
+        self.setKey(key)
+        nonce = self.derive_nonce(self.key)
+        from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+        from cryptography.hazmat.backends import default_backend
+        decrypted_buffer = []
+        for name in channel_names:
+            noise_img = Image.open(f"{in_prefix}{name}.png")
+            ciphertext = noise_img.tobytes()
+            mode = noise_img.mode
+            size = noise_img.size
+            cipher = Cipher(algorithms.AES(self.key), modes.CTR(
+                nonce), backend=default_backend())
+            decryptor = cipher.decryptor()
+            plain = decryptor.update(ciphertext) + decryptor.finalize()
+            img = Image.frombytes(mode, size, plain)
+            decrypted_buffer.append(img)
+        self.buffer = decrypted_buffer
+        self.basicDecode()
