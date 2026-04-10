@@ -28,8 +28,7 @@ Combine shares to reconstruct
 # Demo
 <img src="testImage.jpg" width="350"/>
 
-
-### Place holder for a keyed share
+<img src="R.jpg" width="350"/>
 
 # Work Distribution
 
