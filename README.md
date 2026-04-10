@@ -28,7 +28,7 @@ Combine shares to reconstruct
 # Demo
 <img src="testImage.jpg" width="350"/>
 
-<img src="R.jpg" width="350"/>
+<img src="R.png" width="350"/>
 
 # Work Distribution
 
