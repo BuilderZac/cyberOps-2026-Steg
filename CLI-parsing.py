@@ -7,8 +7,8 @@ import sys, os
     -h display help and flag options
     -e <image file>: ENCODE: take an input image and split it into shares
     -d: DECODE: (must be used with --inDir) take a path to a directory containing each image share and combine them to output the decoded image
-    --scheme [rgb/key]: used to select the encoding scheme, rgb or key
-    --key [key str] or [key.txt]: expects either a string literal or txt file containing the key string to use when encoding/decoding
+    --scheme [rsa/key]: used to select the encoding scheme, rsa or key
+    --keyStr/keyFile [key str] or [key.txt]: expects either a string literal or txt file containing the key string to use when encoding/decoding
     --outDir <dir>: Directory to output the encoded shares
     --inDir <dir>: Directory to read encoded shares from
 '''
@@ -19,17 +19,18 @@ def show_help():
     print("-h display help and flag options")
     print("-e <image file>: ENCODE: take an input image and split it into shares")
     print("-d: DECODE: (must be used with --inDir) take a path to a directory containing each image share and combine them to output the decoded image")
-    print("--scheme [rgb/key]: used to select the encoding scheme, rgb or key")
-    print("--keyStr [keyStr]: expects a string literal to use when encoding/decoding")
-    print("--keyFile [key.txt]: alternative to --keyStr, expects a txt file containing the key string to use when encoding/decoding")
+    print("--scheme [rsa/key]: used to select the encoding scheme, rsa or key")
+    print("--keyStr [keyStr]: expects a string literal to use when encoding/decoding with the key scheme")
+    print("--keyFile [key.txt]: alternative to --keyStr, expects a txt file containing the key string to use when encoding/decoding with the key scheme")
     print("--outDir <dir>: Directory to output the encoded shares")
     print("--inDir <dir>: Directory to read encoded shares from")
     print("-----------------------------------------------------")
     print("Example Usage:")
     print("encoding:")
-    print("python3 main.py -e image.png --scheme rgb --keyFile key.txt --outDir ~/myShares")
+    print("python3 main.py -e image.png --scheme key --keyFile key.txt --outDir ~/myShares")
     print("decoding:")
-    print("python3 main.py -d --inDir ~/myShares --scheme rgb --keyStr keyString")
+    print("python3 main.py -d --inDir ~/myShares --scheme key --keyFile key.txt")
+
 
 '''
 reads flags from the command line and returns the follwing:
@@ -86,9 +87,9 @@ def parse_CLI():
                             print("Error: only one scheme should be specified. Use -h to display help.")
                             sys.exit()
                         i += 1
-                        scheme = sys.argv[i].lower() #Read the scheme
-                        if ((scheme != "rgb") and (scheme != "key")): #Make sure the scheme is either rgb or key
-                            print(f"Unknown scheme: {scheme}. Scheme options are rgb or key. Use -h to display help.")
+                        scheme = sys.argv[i].lower() #Read the scheme (and convert to lowercase)
+                        if ((scheme != "rsa") and (scheme != "key")): #Make sure the scheme is either rgb or key
+                            print(f"Unknown scheme: {scheme}. Scheme options are rsa or key. Use -h to display help.")
                             sys.exit()
                         i += 1 #advance the token index
 
@@ -147,21 +148,27 @@ def parse_CLI():
             sys.exit()
 
         if encode:
-            #checks for no input image, scheme, key
+            #checks for no input image, scheme, key, or if a key was mistakenly provided for rsa scheme
             if input_image_path is None:
                 print("Error: an input image is required for encoding. Use -h to display help.")
                 sys.exit()
             if scheme is None:
-                print("Error: a scheme (rgb or key) is required for encoding. Use -h to display help.")
+                print("Error: a scheme (rsa or key) is required for encoding. Use -h to display help.")
+                sys.exit()
+            if scheme == "rsa" and key is not None:
+                print("Error: no key should be provided when encoding with the rsa scheme. Use -h to display help.")
                 sys.exit()
             if scheme == "key" and key is None:
                 print("Error: a key must be specified when encoding with the key scheme. Use -h to display help.")
                 sys.exit()
 
         if decode:
-                #checks for no scheme, key, input directory
+                #checks for no scheme, key, input directory, or if a key was mistakenly provided for rsa scheme
                 if scheme is None:
-                    print("Error: a scheme (rgb or key) is required for decoding. Use -h to display help.")
+                    print("Error: a scheme (rsa or key) is required for decoding. Use -h to display help.")
+                    sys.exit()
+                if scheme == "rsa" and key is not None:
+                    print("Error: no key should be provided when decoding with the rsa scheme. Use -h to display help.")
                     sys.exit()
                 if scheme == "key" and key is None:
                     print("Error: a key must be specified when decoding with the key scheme. Use -h to display help.")
