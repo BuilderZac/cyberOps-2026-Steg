@@ -7,7 +7,7 @@ import sys, os
     -h display help and flag options
     -e <image file>: ENCODE: take an input image and split it into shares
     -d: DECODE: (must be used with --inDir) take a path to a directory containing each image share and combine them to output the decoded image
-    --scheme [rsa/key]: used to select the encoding scheme, rsa or key
+    --scheme [aes/xor]: used to select the encoding scheme, aes or xor.
     --keyStr/keyFile [key str] or [key.txt]: expects either a string literal or txt file containing the key string to use when encoding/decoding
     --outDir <dir>: Directory to output the encoded shares
     --inDir <dir>: Directory to read encoded shares from
@@ -19,29 +19,19 @@ def show_help():
     print("-h display help and flag options")
     print("-e <image file>: ENCODE: take an input image and split it into shares")
     print("-d: DECODE: (must be used with --inDir) take a path to a directory containing each image share and combine them to output the decoded image")
-    print("--scheme [rsa/key]: used to select the encoding scheme, rsa or key")
-    print("--keyStr [keyStr]: expects a string literal to use when encoding/decoding with the key scheme")
-    print("--keyFile [key.txt]: alternative to --keyStr, expects a txt file containing the key string to use when encoding/decoding with the key scheme")
-    print("--outDir <dir>: Directory to output the encoded shares")
+    print("--scheme [aes/xor]: used to select the encoding scheme, aes or xor. Note: aes requires a 32-byte key")
+    print("--keyStr [keyStr]: expects a string literal to use when encoding/decoding with the xor scheme")
+    print("--keyFile [key.txt]: alternative to --keyStr, expects a txt file containing the key string to use when encoding/decoding with the xor scheme")
+    print("--outDir <dir>: Directory to output the encoded shares or the decoded image")
     print("--inDir <dir>: Directory to read encoded shares from")
     print("-----------------------------------------------------")
     print("Example Usage:")
     print("encoding:")
-    print("python3 main.py -e image.png --scheme key --keyFile key.txt --outDir ~/myShares")
+    print("python3 main.py -e image.png --scheme xor --keyFile key.txt --outDir ~/myShares")
     print("decoding:")
-    print("python3 main.py -d --inDir ~/myShares --scheme key --keyFile key.txt")
+    print("python3 main.py -d --inDir ~/myShares --scheme aes --outDir ~/myImage")
 
 
-'''
-reads flags from the command line and returns the follwing:
-    "encode": encode,
-    "decode": decode,
-    "input_image_path": input_image_path,
-    "scheme": scheme,
-    "key": key,
-    "shares_directory": shares_directory,
-    "output_directory": output_directory
-'''
 def parse_CLI():
     encode = False
     decode = False
@@ -87,9 +77,9 @@ def parse_CLI():
                             print("Error: only one scheme should be specified. Use -h to display help.")
                             sys.exit()
                         i += 1
-                        scheme = sys.argv[i].lower() #Read the scheme (and convert to lowercase)
-                        if ((scheme != "rsa") and (scheme != "key")): #Make sure the scheme is either rgb or key
-                            print(f"Unknown scheme: {scheme}. Scheme options are rsa or key. Use -h to display help.")
+                        scheme = sys.argv[i].lower() #Read the scheme
+                        if ((scheme != "aes") and (scheme != "xor")): #Make sure the scheme is either aes or xor
+                            print(f"Unknown scheme: {scheme}. Scheme options are aes or xor. Use -h to display help.")
                             sys.exit()
                         i += 1 #advance the token index
 
@@ -112,9 +102,16 @@ def parse_CLI():
                         if not os.path.isfile(key_path):
                             print(f"Error: --keyFile specified, but unable to find file {key_path}. Use -h to display help.")
                             sys.exit()
+                        if not os.access(key_path, os.R_OK):
+                            print(f"Error: User does not have permission to read the keyFile {key_path}")
+                            sys.exit()
 
-                        with open(key_path, 'r') as f:
-                            key = f.read() #Read the key. Note: key will be encoded as bytes in crypto.py
+                        try:
+                            with open(key_path, 'r') as f:
+                                key = f.read() #Read the key. Note: key will be encoded as bytes in crypto.py
+                        except Exception:
+                            print(f"Error: unable to read file {key_path}")
+                            sys.exit()
 
                         i += 1 #advance the token index
 
@@ -123,7 +120,16 @@ def parse_CLI():
                         i += 1
                         output_directory = sys.argv[i] #Read the output directory path
                         ##Note: If the directory does not exist, it will be created as part of image-io.py
+                        if os.path.exists(output_directory):
+                            if os.path.isfile(output_directory):
+                                print(f"Error: --outDir must be a directory. Use -h to display help.")
+                                sys.exit()
+                            if not os.access(output_directory, os.W_OK):
+                                print(f"Error: User does not have permission to write to the directory {output_directory}")
+                                sys.exit()
                         i += 1 #advance the token index
+
+
 
                     case "--inDir":
                         i += 1
@@ -131,7 +137,12 @@ def parse_CLI():
                         i += 1 #advance the token index
                         #Ensure that the in directory exists:
                         if not os.path.isdir(shares_directory):
-                            print(f"Error: Unable to find input directory: {shares_directory}.")
+                            print(f"Error: {shares_directory} is not a directory")
+                            sys.exit()
+                        try:
+                            files = os.listdir(shares_directory)
+                        except PermissionError:
+                            print("Error: cannot access directory")
                             sys.exit()
 
                     case _:
@@ -148,30 +159,30 @@ def parse_CLI():
             sys.exit()
 
         if encode:
-            #checks for no input image, scheme, key, or if a key was mistakenly provided for rsa scheme
+            #checks for no input image, scheme, key, or if a non-32-byte key was mistakenly provided for aes scheme
             if input_image_path is None:
                 print("Error: an input image is required for encoding. Use -h to display help.")
                 sys.exit()
             if scheme is None:
-                print("Error: a scheme (rsa or key) is required for encoding. Use -h to display help.")
+                print("Error: a scheme (aes or xor) is required for encoding. Use -h to display help.")
                 sys.exit()
-            if scheme == "rsa" and key is not None:
-                print("Error: no key should be provided when encoding with the rsa scheme. Use -h to display help.")
+            if scheme == "aes" and len(key) != 32:
+                print("Error: AES-CTR requires a 32-byte key. Use -h to display help.")
                 sys.exit()
-            if scheme == "key" and key is None:
-                print("Error: a key must be specified when encoding with the key scheme. Use -h to display help.")
+            if scheme == "xor" and key is None:
+                print("Error: a key must be specified when encoding with the xor scheme. Use -h to display help.")
                 sys.exit()
 
         if decode:
-                #checks for no scheme, key, input directory, or if a key was mistakenly provided for rsa scheme
+                #checks for no scheme, key, input directory, or if a key was mistakenly provided for aes scheme
                 if scheme is None:
-                    print("Error: a scheme (rsa or key) is required for decoding. Use -h to display help.")
+                    print("Error: a scheme (aes or xor) is required for decoding. Use -h to display help.")
                     sys.exit()
-                if scheme == "rsa" and key is not None:
-                    print("Error: no key should be provided when decoding with the rsa scheme. Use -h to display help.")
+                if scheme == "aes" and len(key) != 32:
+                    print("Error: AES-CTR requires a 32-byte key. Use -h to display help.")
                     sys.exit()
-                if scheme == "key" and key is None:
-                    print("Error: a key must be specified when decoding with the key scheme. Use -h to display help.")
+                if scheme == "xor" and key is None:
+                    print("Error: a key must be specified when decoding with the xor scheme. Use -h to display help.")
                     sys.exit()
                 if shares_directory is None or not any(os.scandir(shares_directory)): #Check if no input directory was provided, or the directory is empty
                     print("Error: an input directory (containing image shares) must be specified when decoding. Use -h to display help.")
@@ -185,5 +196,3 @@ def parse_CLI():
             "shares_directory": shares_directory,
             "output_directory": output_directory
         }
-
-parse_CLI()
