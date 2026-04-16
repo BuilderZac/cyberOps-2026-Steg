@@ -9,9 +9,10 @@ MAX_WIDTH = 5000
 MAX_HEIGHT = 5000
 
 
-def load_image(image_path: str) -> Image.Image:
+def validate_image(image_path: str) -> None:
     """
-    Load an image from disk, validate it, and return a PIL Image in RGB format.
+    Validate that the file exists, has an allowed extension, is a valid image,
+    and has acceptable dimensions.
     """
     if not os.path.isfile(image_path):
         raise FileNotFoundError(f"Image not found: {image_path}")
@@ -26,19 +27,30 @@ def load_image(image_path: str) -> Image.Image:
     except (UnidentifiedImageError, OSError) as e:
         raise ValueError(f"Invalid or corrupted image file: {e}")
 
-    img = Image.open(image_path).convert("RGB")
+    with Image.open(image_path) as img:
+        width, height = img.size
 
-    width, height = img.size
     if width <= 0 or height <= 0:
         raise ValueError("Image dimensions must be greater than zero")
 
     if width > MAX_WIDTH or height > MAX_HEIGHT:
-        raise ValueError(
-            f"Image dimensions exceed allowed maximum of "
-            f"{MAX_WIDTH}x{MAX_HEIGHT}"
-        )
+        raise ValueError(f"Image dimensions exceed allowed maximum of {MAX_WIDTH}x{MAX_HEIGHT}")
 
-    return img
+
+def load_image(image_path: str) -> Image.Image:
+    """
+    Load a regular input image as an RGB PIL Image.
+    """
+    validate_image(image_path)
+    return Image.open(image_path).convert("RGB")
+
+
+def load_share(image_path: str) -> Image.Image:
+    """
+    Load a share image as a single-channel grayscale PIL Image.
+    """
+    validate_image(image_path)
+    return Image.open(image_path).convert("L")
 
 
 def _sanitize_filename(filename: str) -> str:
