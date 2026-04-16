@@ -16,7 +16,10 @@ output_directory = args["output_directory"]
 #List of allowed file extensions
 image_extensions = {".png", ".jpg", ".jpeg", ".bmp"}
 
+
+
 #TODO:encrypt/decrypt images for aes
+
 #Create an instance of crypto
 c = crypto.crypto()
 
@@ -25,7 +28,7 @@ image_files = []
 
 if (encode): #If the encode flag is set, load the image at input_image_path and add it to the list
     image_files.append(image_io.load_image(input_image_path)) #Convert the input image to a PIL Image
-    if (scheme == "key"):
+    if (scheme == "xor"):
         #Encode with XOR using the key
 
         c.setKey(key) #Set the key for encoding
@@ -41,13 +44,15 @@ if (encode): #If the encode flag is set, load the image at input_image_path and 
 
 
     elif (scheme == "aes"):
-        #TODO: encryption with aes scheme
-        pass
+        ###IMPORTANT NOTE: For now, decoding for aes will only work with pngs, and both encoding/decoding can only view files in the current directory###
+        img = image_io.load_image(input_image_path)
+        c.setKey(key) #Set the key for encoding
+        c.encrypt_and_save_channels(img, "aes_share_")
 
 
 else: #otherwise load and decode shares based on scheme
 
-    if (scheme == "key"):
+    if (scheme == "xor"):
 
         #Load R, G, B shares
 
@@ -101,5 +106,7 @@ else: #otherwise load and decode shares based on scheme
         image_io.save_image(c.returnBuffer()[0], filename, output_directory)
 
     elif (scheme == "aes"):
-        #TODO: Decryption with aes scheme
-        pass
+        #Decode from aes_shares
+        c.load_and_decrypt_channels(key, "aes_share_")
+        #Save the decoded image
+        image_io.save_image(c.returnBuffer()[0], "aes_decoded", output_directory)
