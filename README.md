@@ -6,22 +6,10 @@ Build a command-line tool that splits a secret image into multiple meaningless-l
 ## Core Features
 encode: Generate shares from a secret image  
 decode: Reconstruct the image from shares  
-preview: (Optional) Show info about shares  
 validate: Ensure correct inputs and formats  
 
-## Recommended Scope  
-### Base Requirement  
-Breaks apart the image into shares  
-Shares can be encrypted  
-### Extension (choose ONE)  
-3-out-of-4 scheme  
-Text/QR: image secrets  
-Authentication/watermarking  
-Performance comparison  
-
 ## User Flow  
-Input a secret image  
-Convert to black/white  
+Input a secret image    
 Generate shares  
 Combine shares to reconstruct  
 
