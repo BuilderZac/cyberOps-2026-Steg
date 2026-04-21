@@ -19,15 +19,21 @@ class crypto:
         buffer (Image[]): the current images ready for output
 
     Methods:
-        __init__: creates the object (NT)
-        basicEncode: take a PIL Image & breaks it to RGB in the buffer (NT)
-        bufferImport: adds a list of images to the buffer (NT)
-        basicDecode: remerges everything in buffer (NT)
-        setKey: sets a text key for the cipher to use (NT)
-        keyBuffer: applies cipher to the buffered images using key (WIP)
-        dekeyBuffer: undoes the cipher with the key (WIP)
-        returnBuffer: returns the buffer as a list of PIL Images (NT)
-        clearBuffer: Emptys out the buffer (NT)
+        __init__: creates the object (I)
+        basicEncode: take a PIL Image & breaks it to RGB in the buffer (I)
+        bufferImport: adds a list of images to the buffer (I)
+        basicDecode: remerges everything in buffer (I)
+        setKey: sets a text key for the cipher to use (I)
+        keyBuffer: applies cipher to the buffered images using key (I)
+        dekeyBuffer: undoes the cipher with the key (I)
+        aesEncryptBuffer: encrypts buffered images with AES-CTR (I)
+        aesDecryptBuffer: decrypts buffered images with AES-CTR (I)
+        returnBuffer: returns the buffer as a list of PIL Images (I)
+        clearBuffer: empties out the buffer (I)
+        generateKey: generates a random 32-byte key as hex string (I)
+        derive_nonce: deterministically derive a 16-byte nonce from key (I)
+        encrypt_and_save_channels: splits image to RGB, encrypts, saves PNGs (I)
+        load_and_decrypt_channels: loads/decrypts RGB PNGs, reconstructs image (I)
     """
 
     def __init__(self, key: str = ""):
