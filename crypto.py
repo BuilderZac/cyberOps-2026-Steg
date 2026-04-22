@@ -34,6 +34,8 @@ class crypto:
         derive_nonce: deterministically derive a 16-byte nonce from key (I)
         encrypt_and_save_channels: splits image to RGB, encrypts, saves PNGs (I)
         load_and_decrypt_channels: loads/decrypts RGB PNGs, reconstructs image (I)
+        feistelEncode: uses a basic feistel cipher to encode data (NA)
+        feistalDecode: undoes the basic fiestel cipher (NA)
     """
 
     def __init__(self, key: str = "", info: bool = False):
@@ -62,7 +64,7 @@ class crypto:
         if self.info:
             print('''3 Shares are being made by splitting the image using the RGB channels.
             Each channel is a single byte of data representing a value between 0 & 255.
-            As Red, Green, & Blue are the basic colors they can be used to digitally 
+            As Red, Green, & Blue are the basic colors they can be used to digitally
             save all othere colors.''')
 
     def bufferImport(self, imageList):
@@ -98,7 +100,7 @@ class crypto:
         key_bytes = os.urandom(32)
 
         if self.info:
-            print('''A random key is being generated from a secure Pseudo Random 
+            print('''A random key is being generated from a secure Pseudo Random
             Number Generator. That is an algorithm that makes statistically random
             numbers which can then be used for security purposes. In this case
             a number 32-bytes long is being generated to serve as an AES key.''')
@@ -276,12 +278,16 @@ class crypto:
 
     @staticmethod
     def derive_nonce(key):
-        """Deterministically derive a 16-byte nonce from a 32-byte key."""
+        """
+        Deterministically derive a 16-byte nonce from a 32-byte key.
+        """
         key_bytes = key if isinstance(key, bytes) else bytes.fromhex(key)
         return hashlib.sha256(key_bytes).digest()[:16]
 
     def encrypt_and_save_channels(self, image, out_prefix=""):
-        """Split image to R/G/B, encrypt each with AES-CTR (shared nonce), save as PNGs."""
+        """
+        Split image to R/G/B, encrypt each with AES-CTR (shared nonce), save as PNGs.
+        """
         self.basicEncode(image)
         nonce = self.derive_nonce(self.key)
         channel_names = ['R', 'G', 'B']
@@ -300,7 +306,9 @@ class crypto:
         self.clearBuffer()
 
     def load_and_decrypt_channels(self, key, in_prefix=""):
-        """Load R/G/B PNGs, decrypt with AES-CTR (shared nonce), reconstruct image in buffer."""
+        """
+        Load R/G/B PNGs, decrypt with AES-CTR (shared nonce), reconstruct image in buffer.
+        """
         channel_names = ['R', 'G', 'B']
         self.setKey(key)
         nonce = self.derive_nonce(self.key)
@@ -320,3 +328,15 @@ class crypto:
             decrypted_buffer.append(img)
         self.buffer = decrypted_buffer
         self.basicDecode()
+
+        def feistelEncode(self):
+            """
+            Encrypts the buffer with a 3 round feistel cipher.
+            """
+            pass
+
+        def feistelDecode(self):
+            """
+            Decrypts the buffer with the loaded key if a feistel cipher was used.
+            """
+            pass
