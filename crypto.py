@@ -36,7 +36,7 @@ class crypto:
         load_and_decrypt_channels: loads/decrypts RGB PNGs, reconstructs image (I)
     """
 
-    def __init__(self, key: str = ""):
+    def __init__(self, key: str = "", info: bool = False):
         """
         Initiates the crypto system.
 
@@ -45,6 +45,7 @@ class crypto:
         """
         self.key = key
         self.buffer = []
+        self.info = info
 
     def basicEncode(self, source: Image):
         """
@@ -57,6 +58,12 @@ class crypto:
         self.buffer.append(r)
         self.buffer.append(g)
         self.buffer.append(b)
+
+        if self.info:
+            print('''3 Shares are being made by splitting the image using the RGB channels.
+            Each channel is a single byte of data representing a value between 0 & 255.
+            As Red, Green, & Blue are the basic colors they can be used to digitally 
+            save all othere colors.''')
 
     def bufferImport(self, imageList):
         """
@@ -78,12 +85,24 @@ class crypto:
         merged = Image.merge("RGB", (r, g, b))
         self.buffer = [merged]
 
+        if self.info:
+            print('''Using the 3 given shares as plaintext we can recombine the original
+            RGB color channels. This will restore the original image before it was
+            split appart.''')
+
     @staticmethod
-    def generateKey():
+    def generateKey(self):
         """
         Generates a random 32-byte key, returns it as a hex string suitable for setKey().
         """
         key_bytes = os.urandom(32)
+
+        if self.info:
+            print('''A random key is being generated from a secure Pseudo Random 
+            Number Generator. That is an algorithm that makes statistically random
+            numbers which can then be used for security purposes. In this case
+            a number 32-bytes long is being generated to serve as an AES key.''')
+
         return key_bytes.hex()
 
     def setKey(self, key):
@@ -129,6 +148,14 @@ class crypto:
             temBuffer.append(reconstructed)
         self.buffer = temBuffer
 
+        if self.info:
+            print('''An XOR cipher is being applied using the current key. If the
+            key is as long as the image, then there will be no repeating patterns.
+            If it is too short, the key will be repeated, leading to the image
+            keeping its appearance even after conversion. This basic XOR
+            cipher is a symmetric cipher, meaning that to undo it the
+            process is the same as encrypting it but done in reverse.''')
+
     def dekeyBuffer(self):
         """
         Undoes the XOR cipher using the set key to the images in the buffer.
@@ -156,6 +183,11 @@ class crypto:
             temBuffer.append(reconstructed)
         self.buffer = temBuffer
 
+        if self.info:
+            print('''The XOR cipher is being decrypted. This is the
+            same process as the original encryption due to the
+            cipher being symmetric.''')
+
     def aesEncryptBuffer(self):
         """
         Encrypts each image in the buffer using AES-CTR.
@@ -178,6 +210,14 @@ class crypto:
             temBuffer.append((nonce + ciphertext, size, mode))
         self.buffer = temBuffer
 
+        if self.info:
+            print('''AES-CTR is being used to encrypt each channel in the buffer.
+            AES (Advanced Encryption Standard) is a widely used symmetric encryption algorithm.
+            The CTR (Counter) mode turns the block cipher into a stream cipher, making it suitable
+            for encrypting image data of arbitrary length. For each channel, a random nonce is generated
+            and prepended to the ciphertext, allowing for secure decryption later as long as the
+            same nonce is provided. This provides strong confidentiality for the image data.''')
+
     def aesDecryptBuffer(self):
         """
         Decrypts each image in the buffer using AES-CTR.
@@ -199,6 +239,13 @@ class crypto:
             img = Image.frombytes(mode, size, plain)
             temBuffer.append(img)
         self.buffer = temBuffer
+
+        if self.info:
+            print('''AES-CTR decryption is being performed on the buffer.
+            Each entry is interpreted as a tuple containing a nonce and ciphertext.
+            The key and nonce are required to reconstruct the original image.
+            Proper use of CTR mode with a unique nonce per channel ensures that
+            the image data can be securely restored to its unencrypted form.''')
 
     def returnBuffer(self):
         """
