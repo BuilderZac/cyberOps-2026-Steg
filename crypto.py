@@ -90,7 +90,7 @@ class crypto:
             RGB color channels. This will restore the original image before it was
             split appart.''')
 
-    @staticmethod
+
     def generateKey(self):
         """
         Generates a random 32-byte key, returns it as a hex string suitable for setKey().
@@ -282,84 +282,84 @@ class crypto:
         """
         self.buffer = []
 
-        def feistelEncode(self):
-            """
-            Encrypts each image in the buffer with a 3-round Feistel cipher.
-            Operates at the byte level for each image channel. Updates buffer in-place.
-            """
-            if not self.key:
-                raise ValueError(
-                    "No key set. Use setKey() before Feistel encryption.")
+    def feistelEncode(self):
+        """
+        Encrypts each image in the buffer with a 3-round Feistel cipher.
+        Operates at the byte level for each image channel. Updates buffer in-place.
+        """
+        if not self.key:
+            raise ValueError(
+                "No key set. Use setKey() before Feistel encryption.")
 
-            from hashlib import sha256
+        from hashlib import sha256
 
-            def round_function(data, round_key):
-                # Simple round function: hash of round key, then xor repeated over data
-                h = sha256(round_key).digest()
-                return bytes([b ^ h[i % len(h)] for i, b in enumerate(data)])
+        def round_function(data, round_key):
+            # Simple round function: hash of round key, then xor repeated over data
+            h = sha256(round_key).digest()
+            return bytes([b ^ h[i % len(h)] for i, b in enumerate(data)])
 
-            feistel_rounds = 3
-            key_bytes = self.key if isinstance(
-                self.key, bytes) else self.key.encode('utf-8')
-            temBuffer = []
+        feistel_rounds = 3
+        key_bytes = self.key if isinstance(
+            self.key, bytes) else self.key.encode('utf-8')
+        temBuffer = []
 
-            for img in self.buffer:
-                size = img.size
-                mode = img.mode
-                data = img.tobytes()
-                # Split into left and right halves
-                half = len(data) // 2
-                left, right = data[:half], data[half:]
-                for rnd in range(feistel_rounds):
-                    round_key = key_bytes + bytes([rnd])
-                    f = round_function(right, round_key)
-                    left, right = right, bytes(
-                        [l ^ f[i] for i, l in enumerate(left)])
-                ciphered = left + right
-                enc_img = Image.frombytes(mode, size, ciphered)
-                temBuffer.append(enc_img)
-            self.buffer = temBuffer
+        for img in self.buffer:
+            size = img.size
+            mode = img.mode
+            data = img.tobytes()
+            # Split into left and right halves
+            half = len(data) // 2
+            left, right = data[:half], data[half:]
+            for rnd in range(feistel_rounds):
+                round_key = key_bytes + bytes([rnd])
+                f = round_function(right, round_key)
+                left, right = right, bytes(
+                    [l ^ f[i] for i, l in enumerate(left)])
+            ciphered = left + right
+            enc_img = Image.frombytes(mode, size, ciphered)
+            temBuffer.append(enc_img)
+        self.buffer = temBuffer
 
-            if self.info:
-                print('''A 3-round Feistel cipher is being used to encrypt each channel in the buffer.
-                      A Feistel cipher is a symmetric structure used in many block ciphers, such as DES.
-                      The data is split into two halves, and then undergoes 3 rounds of processing,
-                      where in each round, one half is transformed using a round function and the result
-                      is XORed with the other half and then swapped.''')
+        if self.info:
+            print('''A 3-round Feistel cipher is being used to encrypt each channel in the buffer.
+                  A Feistel cipher is a symmetric structure used in many block ciphers, such as DES.
+                  The data is split into two halves, and then undergoes 3 rounds of processing,
+                  where in each round, one half is transformed using a round function and the result
+                  is XORed with the other half and then swapped.''')
 
-        def feistelDecode(self):
-            """
-            Decrypts each image in the buffer with the loaded key using the 3-round Feistel cipher.
-            """
-            if not self.key:
-                raise ValueError(
-                    "No key set. Use setKey() before Feistel decryption.")
+    def feistelDecode(self):
+        """
+        Decrypts each image in the buffer with the loaded key using the 3-round Feistel cipher.
+        """
+        if not self.key:
+            raise ValueError(
+                "No key set. Use setKey() before Feistel decryption.")
 
-            from hashlib import sha256
+        from hashlib import sha256
 
-            def round_function(data, round_key):
-                h = sha256(round_key).digest()
-                return bytes([b ^ h[i % len(h)] for i, b in enumerate(data)])
+        def round_function(data, round_key):
+            h = sha256(round_key).digest()
+            return bytes([b ^ h[i % len(h)] for i, b in enumerate(data)])
 
-            feistel_rounds = 3
-            key_bytes = self.key if isinstance(
-                self.key, bytes) else self.key.encode('utf-8')
-            temBuffer = []
+        feistel_rounds = 3
+        key_bytes = self.key if isinstance(
+            self.key, bytes) else self.key.encode('utf-8')
+        temBuffer = []
 
-            for img in self.buffer:
-                size = img.size
-                mode = img.mode
-                data = img.tobytes()
-                half = len(data) // 2
-                left, right = data[:half], data[half:]
+        for img in self.buffer:
+            size = img.size
+            mode = img.mode
+            data = img.tobytes()
+            half = len(data) // 2
+            left, right = data[:half], data[half:]
 
-                # Feistel decryption: run rounds in reverse, swap left/right roles accordingly
-                for rnd in reversed(range(feistel_rounds)):
-                    round_key = key_bytes + bytes([rnd])
-                    f = round_function(left, round_key)
-                    left, right = bytes([r ^ f[i]
-                                        for i, r in enumerate(right)]), left
-                plain = left + right
-                dec_img = Image.frombytes(mode, size, plain)
-                temBuffer.append(dec_img)
-            self.buffer = temBuffer
+            # Feistel decryption: run rounds in reverse, swap left/right roles accordingly
+            for rnd in reversed(range(feistel_rounds)):
+                round_key = key_bytes + bytes([rnd])
+                f = round_function(left, round_key)
+                left, right = bytes([r ^ f[i]
+                                    for i, r in enumerate(right)]), left
+            plain = left + right
+            dec_img = Image.frombytes(mode, size, plain)
+            temBuffer.append(dec_img)
+        self.buffer = temBuffer
