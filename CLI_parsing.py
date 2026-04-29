@@ -24,6 +24,15 @@ def show_help():
     print("python3 main.py -d --inDir ~/myShares --scheme aes --outDir ~/myImage")
 
 
+def print_graph():
+    print()
+    print('''
+| Command Line Input Parsing.......ERROR
+| Loading Image(s).................
+| Encoding/Decoding................
+| Saving Image(s)..................
+''')
+
 def parse_CLI():
     encode = False
     decode = False
@@ -49,12 +58,15 @@ def parse_CLI():
                     case "-e":
                         if(decode or encode): #Make sure that only one of encode/decode is used
                             print("Only one Encode/Decode flag should be set. Use -h to display help.")
+                            print_graph()
                             sys.exit()
+
                         encode = True
                         i += 1
                         input_image_path = sys.argv[i] #Read the image to encode
                         if not os.path.isfile(input_image_path):
                             print(f"Error: unable to locate file {input_image_path}.") #Make sure the input file exists
+                            print_graph()
                             sys.exit()
                         ##Note: Checking for valid file type happens in image-io.py
                         i += 1 #advance the token index
@@ -62,6 +74,7 @@ def parse_CLI():
                     case "-d":
                         if(decode or encode): #Make sure that only one of encode/decode is used
                             print("Only one Encode/Decode flag should be set. Use -h to display help.")
+                            print_graph()
                             sys.exit()
                         decode = True
                         i += 1 #advance the token index
@@ -69,17 +82,20 @@ def parse_CLI():
                     case "--scheme":
                         if scheme is not None: #Ensure that only one scheme is selected
                             print("Error: only one scheme should be specified. Use -h to display help.")
+                            print_graph()
                             sys.exit()
                         i += 1
                         scheme = sys.argv[i].lower() #Read the scheme
                         if (scheme not in allowed_schemes): #Make sure the scheme is a known scheme
                             print(f"Unknown scheme: {scheme}. Scheme options are: {'/'.join(allowed_schemes)}. Use -h to display help.")
+                            print_graph()
                             sys.exit()
                         i += 1 #advance the token index
 
                     case "--keyStr":
                         if key is not None: #Ensure that only one key is provided
                             print("Only one key should be provided. Use -h to display help.")
+                            print_graph()
                             sys.exit()
 
                         i += 1
@@ -89,15 +105,18 @@ def parse_CLI():
                     case "--keyFile":
                         if key is not None: #Ensure that only one key is provided
                             print("Only one key should be provided. Use -h to display help.")
+                            print_graph()
                             sys.exit()
 
                         i += 1
                         key_path = sys.argv[i] #Read the filepath for the key
                         if not os.path.isfile(key_path):
                             print(f"Error: --keyFile specified, but unable to find file {key_path}. Use -h to display help.")
+                            print_graph()
                             sys.exit()
                         if not os.access(key_path, os.R_OK):
                             print(f"Error: User does not have permission to read the keyFile {key_path}")
+                            print_graph()
                             sys.exit()
 
                         try:
@@ -105,6 +124,7 @@ def parse_CLI():
                                 key = f.read() #Read the key. Note: key will be encoded as bytes in crypto.py
                         except Exception:
                             print(f"Error: unable to read file {key_path}")
+                            print_graph()
                             sys.exit()
 
                         i += 1 #advance the token index
@@ -117,9 +137,11 @@ def parse_CLI():
                         if os.path.exists(output_directory):
                             if os.path.isfile(output_directory):
                                 print(f"Error: --outDir must be a directory. Use -h to display help.")
+                                print_graph()
                                 sys.exit()
                             if not os.access(output_directory, os.W_OK):
                                 print(f"Error: User does not have permission to write to the directory {output_directory}")
+                                print_graph()
                                 sys.exit()
                         i += 1 #advance the token index
 
@@ -132,11 +154,13 @@ def parse_CLI():
                         #Ensure that the in directory exists:
                         if not os.path.isdir(shares_directory):
                             print(f"Error: {shares_directory} is not a directory")
+                            print_graph()
                             sys.exit()
                         try:
                             files = os.listdir(shares_directory)
                         except PermissionError:
                             print("Error: cannot access directory")
+                            print_graph()
                             sys.exit()
 
                     case "-i":
@@ -147,24 +171,29 @@ def parse_CLI():
 
                     case _:
                         print(f"Unknown option: {token}. Use python3 main.py -h to display help.")
+                        print_graph()
                         sys.exit()
 
             except IndexError:
                 print(f"Error:argument expected after {sys.argv[i-1]} but found none. Use -h to display help.")
+                print_graph()
                 sys.exit()
 
         #After reading all the tokens, check that the following conditions are met:
         if ((encode is None) and (decode is None)):
             print("Error: either -e or -d must be specified. Use -h to display help.")
+            print_graph()
             sys.exit()
 
         if encode:
             #checks for no input image, scheme, key, or if a non-32-byte key was mistakenly provided for aes scheme
             if input_image_path is None:
                 print("Error: an input image is required for encoding. Use -h to display help.")
+                print_graph()
                 sys.exit()
             if scheme is None:
                 print("Error: a scheme ({'/'.join(allowed_schemes)}) is required for encoding. Use -h to display help.")
+                print_graph()
                 sys.exit()
             if (key is None):
                 pass #This is handled in main.py
@@ -173,9 +202,11 @@ def parse_CLI():
                 #checks for no scheme, key, input directory, or if a key was mistakenly provided for aes scheme
                 if scheme is None:
                     print("Error: a scheme ({'/'.join(allowed_schemes)}) is required for decoding. Use -h to display help.")
+                    print_graph()
                     sys.exit()
                 if key is None:
                     print("Error: a key must be specified when decoding. Use -h to display help.")
+                    print_graph()
                     sys.exit()
                 if shares_directory is None or not any(os.scandir(shares_directory)): #Check if no input directory was provided, or the directory is empty
                     print("Error: an input directory (containing image shares) must be specified when decoding. Use -h to display help.")
