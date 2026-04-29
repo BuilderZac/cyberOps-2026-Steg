@@ -32,8 +32,6 @@ class crypto:
         clearBuffer: empties out the buffer (I)
         generateKey: generates a random 32-byte key as hex string (I)
         derive_nonce: deterministically derive a 16-byte nonce from key (I)
-        encrypt_and_save_channels: splits image to RGB, encrypts, saves PNGs (I)
-        load_and_decrypt_channels: loads/decrypts RGB PNGs, reconstructs image (I)
         feistelEncode: uses a basic feistel cipher to encode data (NT)
         feistalDecode: undoes the basic fiestel cipher (NT)
     """
@@ -190,6 +188,14 @@ class crypto:
             same process as the original encryption due to the
             cipher being symmetric.''')
 
+    @staticmethod
+    def derive_nonce(key):
+        """
+        Deterministically derive a 16-byte nonce from a 32-byte key.
+        """
+        key_bytes = key if isinstance(key, bytes) else bytes.fromhex(key)
+        return hashlib.sha256(key_bytes).digest()[:16]
+
     def aesEncryptBuffer(self):
         """
         Encrypts each image in the buffer using AES-CTR.
@@ -204,7 +210,7 @@ class crypto:
             size = img.size
             mode = img.mode
             data = img.tobytes()
-            nonce = os.urandom(16)
+            nonce = self.derive_nonce(self.key)
             cipher = Cipher(algorithms.AES(self.key), modes.CTR(
                 nonce), backend=default_backend())
             encryptor = cipher.encryptor()
@@ -232,7 +238,7 @@ class crypto:
 
         for item in self.buffer:
             data, size, mode = item
-            nonce = data[:16]
+            nonce = self.derive_nonce(self.key)
             ciphertext = data[16:]
             cipher = Cipher(algorithms.AES(self.key), modes.CTR(
                 nonce), backend=default_backend())
@@ -275,59 +281,6 @@ class crypto:
         Clears the buffer back to an empty list.
         """
         self.buffer = []
-
-    @staticmethod
-    def derive_nonce(key):
-        """
-        Deterministically derive a 16-byte nonce from a 32-byte key.
-        """
-        key_bytes = key if isinstance(key, bytes) else bytes.fromhex(key)
-        return hashlib.sha256(key_bytes).digest()[:16]
-
-    def encrypt_and_save_channels(self, image, out_prefix=""):
-        """
-        Split image to R/G/B, encrypt each with AES-CTR (shared nonce), save as PNGs.
-        """
-        self.basicEncode(image)
-        nonce = self.derive_nonce(self.key)
-        channel_names = ['R', 'G', 'B']
-        from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-        from cryptography.hazmat.backends import default_backend
-        for idx, img in enumerate(self.buffer):
-            size = img.size
-            mode = img.mode
-            data = img.tobytes()
-            cipher = Cipher(algorithms.AES(self.key), modes.CTR(
-                nonce), backend=default_backend())
-            encryptor = cipher.encryptor()
-            ciphertext = encryptor.update(data) + encryptor.finalize()
-            noise_img = Image.frombytes(mode, size, ciphertext)
-            noise_img.save(f"{out_prefix}{channel_names[idx]}.png")
-        self.clearBuffer()
-
-    def load_and_decrypt_channels(self, key, in_prefix=""):
-        """
-        Load R/G/B PNGs, decrypt with AES-CTR (shared nonce), reconstruct image in buffer.
-        """
-        channel_names = ['R', 'G', 'B']
-        self.setKey(key)
-        nonce = self.derive_nonce(self.key)
-        from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-        from cryptography.hazmat.backends import default_backend
-        decrypted_buffer = []
-        for name in channel_names:
-            noise_img = Image.open(f"{in_prefix}{name}.png")
-            ciphertext = noise_img.tobytes()
-            mode = noise_img.mode
-            size = noise_img.size
-            cipher = Cipher(algorithms.AES(self.key), modes.CTR(
-                nonce), backend=default_backend())
-            decryptor = cipher.decryptor()
-            plain = decryptor.update(ciphertext) + decryptor.finalize()
-            img = Image.frombytes(mode, size, plain)
-            decrypted_buffer.append(img)
-        self.buffer = decrypted_buffer
-        self.basicDecode()
 
         def feistelEncode(self):
             """
