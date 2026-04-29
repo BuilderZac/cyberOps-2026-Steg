@@ -34,8 +34,8 @@ class crypto:
         derive_nonce: deterministically derive a 16-byte nonce from key (I)
         encrypt_and_save_channels: splits image to RGB, encrypts, saves PNGs (I)
         load_and_decrypt_channels: loads/decrypts RGB PNGs, reconstructs image (I)
-        feistelEncode: uses a basic feistel cipher to encode data (NA)
-        feistalDecode: undoes the basic fiestel cipher (NA)
+        feistelEncode: uses a basic feistel cipher to encode data (NT)
+        feistalDecode: undoes the basic fiestel cipher (NT)
     """
 
     def __init__(self, key: str = "", info: bool = False):
@@ -331,12 +331,82 @@ class crypto:
 
         def feistelEncode(self):
             """
-            Encrypts the buffer with a 3 round feistel cipher.
+            Encrypts each image in the buffer with a 3-round Feistel cipher.
+            Operates at the byte level for each image channel. Updates buffer in-place.
             """
-            pass
+            if not self.key:
+                raise ValueError(
+                    "No key set. Use setKey() before Feistel encryption.")
+
+            from hashlib import sha256
+
+            def round_function(data, round_key):
+                # Simple round function: hash of round key, then xor repeated over data
+                h = sha256(round_key).digest()
+                return bytes([b ^ h[i % len(h)] for i, b in enumerate(data)])
+
+            feistel_rounds = 3
+            key_bytes = self.key if isinstance(
+                self.key, bytes) else self.key.encode('utf-8')
+            temBuffer = []
+
+            for img in self.buffer:
+                size = img.size
+                mode = img.mode
+                data = img.tobytes()
+                # Split into left and right halves
+                half = len(data) // 2
+                left, right = data[:half], data[half:]
+                for rnd in range(feistel_rounds):
+                    round_key = key_bytes + bytes([rnd])
+                    f = round_function(right, round_key)
+                    left, right = right, bytes(
+                        [l ^ f[i] for i, l in enumerate(left)])
+                ciphered = left + right
+                enc_img = Image.frombytes(mode, size, ciphered)
+                temBuffer.append(enc_img)
+            self.buffer = temBuffer
+
+            if self.info:
+                print('''A 3-round Feistel cipher is being used to encrypt each channel in the buffer.
+                      A Feistel cipher is a symmetric structure used in many block ciphers, such as DES.
+                      The data is split into two halves, and then undergoes 3 rounds of processing,
+                      where in each round, one half is transformed using a round function and the result
+                      is XORed with the other half and then swapped.''')
 
         def feistelDecode(self):
             """
-            Decrypts the buffer with the loaded key if a feistel cipher was used.
+            Decrypts each image in the buffer with the loaded key using the 3-round Feistel cipher.
             """
-            pass
+            if not self.key:
+                raise ValueError(
+                    "No key set. Use setKey() before Feistel decryption.")
+
+            from hashlib import sha256
+
+            def round_function(data, round_key):
+                h = sha256(round_key).digest()
+                return bytes([b ^ h[i % len(h)] for i, b in enumerate(data)])
+
+            feistel_rounds = 3
+            key_bytes = self.key if isinstance(
+                self.key, bytes) else self.key.encode('utf-8')
+            temBuffer = []
+
+            for img in self.buffer:
+                size = img.size
+                mode = img.mode
+                data = img.tobytes()
+                half = len(data) // 2
+                left, right = data[:half], data[half:]
+
+                # Feistel decryption: run rounds in reverse, swap left/right roles accordingly
+                for rnd in reversed(range(feistel_rounds)):
+                    round_key = key_bytes + bytes([rnd])
+                    f = round_function(left, round_key)
+                    left, right = bytes([r ^ f[i]
+                                        for i, r in enumerate(right)]), left
+                plain = left + right
+                dec_img = Image.frombytes(mode, size, plain)
+                temBuffer.append(dec_img)
+            self.buffer = temBuffer
