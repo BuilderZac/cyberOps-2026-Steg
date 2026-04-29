@@ -90,7 +90,6 @@ class crypto:
             RGB color channels. This will restore the original image before it was
             split appart.''')
 
-
     def generateKey(self):
         """
         Generates a random 32-byte key, returns it as a hex string suitable for setKey().
@@ -201,21 +200,24 @@ class crypto:
         Encrypts each image in the buffer using AES-CTR.
         The nonce is prepended to the ciphertext for each channel.
         """
-        if not self.key or len(self.key) != 32:
-            raise ValueError("AES-CTR requires a 32-byte key.")
+        key_bytes = self.key if isinstance(
+            self.key, bytes) else bytes.fromhex(self.key)
+        if not key_bytes or len(key_bytes) != 32:
+            raise ValueError(
+                "AES-CTR requires a 32-byte key (in bytes or hex form).")
 
         temBuffer = []
-
         for img in self.buffer:
             size = img.size
             mode = img.mode
             data = img.tobytes()
-            nonce = self.derive_nonce(self.key)
-            cipher = Cipher(algorithms.AES(self.key), modes.CTR(
+            nonce = self.derive_nonce(key_bytes)
+            cipher = Cipher(algorithms.AES(key_bytes), modes.CTR(
                 nonce), backend=default_backend())
             encryptor = cipher.encryptor()
             ciphertext = encryptor.update(data) + encryptor.finalize()
-            temBuffer.append((nonce + ciphertext, size, mode))
+            enc_img = Image.frombytes(mode, size, ciphertext)
+            temBuffer.append(enc_img)
         self.buffer = temBuffer
 
         if self.info:
@@ -231,21 +233,24 @@ class crypto:
         Decrypts each image in the buffer using AES-CTR.
         Assumes each entry is a (nonce+ciphertext, size, mode) tuple.
         """
-        if not self.key or len(self.key) != 32:
-            raise ValueError("AES-CTR requires a 32-byte key.")
+        key_bytes = self.key if isinstance(
+            self.key, bytes) else bytes.fromhex(self.key)
+        if not key_bytes or len(key_bytes) != 32:
+            raise ValueError(
+                "AES-CTR requires a 32-byte key (in bytes or hex form).")
 
         temBuffer = []
-
-        for item in self.buffer:
-            data, size, mode = item
-            nonce = self.derive_nonce(self.key)
-            ciphertext = data[16:]
-            cipher = Cipher(algorithms.AES(self.key), modes.CTR(
+        for img in self.buffer:
+            size = img.size
+            mode = img.mode
+            data = img.tobytes()
+            nonce = self.derive_nonce(key_bytes)
+            cipher = Cipher(algorithms.AES(key_bytes), modes.CTR(
                 nonce), backend=default_backend())
             decryptor = cipher.decryptor()
-            plain = decryptor.update(ciphertext) + decryptor.finalize()
-            img = Image.frombytes(mode, size, plain)
-            temBuffer.append(img)
+            plaintext = decryptor.update(data) + decryptor.finalize()
+            dec_img = Image.frombytes(mode, size, plaintext)
+            temBuffer.append(dec_img)
         self.buffer = temBuffer
 
         if self.info:
