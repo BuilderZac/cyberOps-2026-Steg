@@ -16,6 +16,36 @@ info = args["info"]
 #List of allowed file extensions
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp"}
 
+def fail_lodaing():
+    print()
+    print('''
+| Command Line Input Parsing.......OK
+| Loading Image(s).................ERROR
+| Encoding/Decoding................
+| Saving Image(s)..................
+''')
+
+def fail_crypto():
+    print()
+    print('''
+| Command Line Input Parsing.......OK
+| Loading Image(s).................OK
+| Encoding/Decoding................ERROR
+| Saving Image(s)..................
+''')
+
+def fail_saving():
+    print()
+    print('''
+| Command Line Input Parsing.......OK
+| Loading Image(s).................OK
+| Encoding/Decoding................OK
+| Saving Image(s)..................ERROR
+''')
+
+
+
+
 def load_RGB_shares():
     '''
     Check the shares_directory to find the red green and blue shares. Returns a list containing each share. Will break if there are multiple images with the same "share_r/g/b" substring
@@ -41,13 +71,16 @@ def load_RGB_shares():
 
         if r is None or g is None or b is None:
             print("Error: Missing one or more RGB shares")
+            fail_loading()
             sys.exit()
 
     except PermissionError:
         print(f"Error: Unable to access {shares_directory}")
+        fail_loading()
         sys.exit()
     except FileNotFoundError:
         print("Error: Directory does not exist")
+        fail_loading()
         sys.exit()
 
     return [r,g,b]
