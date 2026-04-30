@@ -24,6 +24,7 @@ def fail_lodaing():
 | Encoding/Decoding................
 | Saving Image(s)..................
 ''')
+    sys.exit()
 
 def fail_crypto():
     print()
@@ -33,6 +34,7 @@ def fail_crypto():
 | Encoding/Decoding................ERROR
 | Saving Image(s)..................
 ''')
+    sys.exit()
 
 def fail_saving():
     print()
@@ -42,6 +44,7 @@ def fail_saving():
 | Encoding/Decoding................OK
 | Saving Image(s)..................ERROR
 ''')
+    sys.exit()
 
 
 
@@ -72,16 +75,10 @@ def load_RGB_shares():
         if r is None or g is None or b is None:
             print("Error: Missing one or more RGB shares")
             fail_loading()
-            sys.exit()
 
-    except PermissionError:
-        print(f"Error: Unable to access {shares_directory}")
+    except Exception as e:
+        print(e)
         fail_loading()
-        sys.exit()
-    except FileNotFoundError:
-        print("Error: Directory does not exist")
-        fail_loading()
-        sys.exit()
 
     return [r,g,b]
 
@@ -93,8 +90,12 @@ if key is not None:
 elif key is None:
     print("No key provided. A random 32-byte key will be generated. Please save it in a safe location as it is necessary to decode the shares.")
     key = c.generateKey()
-    c.setKey(key)
-    print(f"Generated key: {key}")
+    try:
+        c.setKey(key)
+        print(f"Generated key: {key}")
+    except Exception as e:
+        print(e)
+        fail_crypto()
 
 #Create a list to store image files
 image_files = []
@@ -106,44 +107,71 @@ if (encode): #If the encode flag is set, load the image at input_image_path and 
     if (scheme == "xor"):
         #Encode with XOR using the key
 
-        c.basicEncode(image_files[0]) #Break the input image into R, G, B images (and store them in the buffer)
-        c.keyBuffer() #Apply an XOR cipher to the images using the key that was just set
+        try:
+            c.basicEncode(image_files[0]) #Break the input image into R, G, B images (and store them in the buffer)
+            c.keyBuffer() #Apply an XOR cipher to the images using the key that was just set
+
+        except Exception as e:
+            print(e)
+            fail_crypto()
 
         #Save the encoded images
-        encoded_images = c.returnBuffer()
-        image_io.save_image(encoded_images[0], "share_r.png", output_directory) #Save the red share
-        image_io.save_image(encoded_images[1], "share_g.png", output_directory) #Save the green share
-        image_io.save_image(encoded_images[2], "share_b.png", output_directory) #Save the blue share
-
+        try:
+            encoded_images = c.returnBuffer()
+            image_io.save_image(encoded_images[0], "share_r.png", output_directory) #Save the red share
+            image_io.save_image(encoded_images[1], "share_g.png", output_directory) #Save the green share
+            image_io.save_image(encoded_images[2], "share_b.png", output_directory) #Save the blue share
+        except Exception as e:
+            print(e)
+            fail_saving()
 
 
     elif (scheme == "aes"): #encode the image with AES
         #Check key validity
-        if (len(c.key) != 32):
-            print("The provided key does not meet AES requirements. A random key has been generated for AES encryption. Please store it in a safe place as it is necessary to decrypt the shares")
-            key = c.generateKey()
-            print(f"Generated key: {key}")
-            c.setKey(key)
+        try:
+            if (len(c.key) != 32):
+                print("The provided key does not meet AES requirements. A random key has been generated for AES encryption. Please store it in a safe place as it is necessary to decrypt the shares")
+                key = c.generateKey()
+                print(f"Generated key: {key}")
+                c.setKey(key)
 
-        c.basicEncode(image_files[0]) #Break the input image into R,G,B images (and store them in the buffer)
-        c.aesEncryptBuffer() #Apply AES-CTR to the images in the buffer (and store the result in the buffer)
+            c.basicEncode(image_files[0]) #Break the input image into R,G,B images (and store them in the buffer)
+            c.aesEncryptBuffer() #Apply AES-CTR to the images in the buffer (and store the result in the buffer)
+
+        except Exception as e:
+            print(e)
+            fail_crypto()
 
         #Save the encoded images
-        encoded_images = c.returnBuffer()
-        image_io.save_image(encoded_images[0], "share_r.png", output_directory) #Save the red share
-        image_io.save_image(encoded_images[1], "share_g.png", output_directory) #Save the green share
-        image_io.save_image(encoded_images[2], "share_b.png", output_directory) #Save the blue share
+        try:
+            encoded_images = c.returnBuffer()
+            image_io.save_image(encoded_images[0], "share_r.png", output_directory) #Save the red share
+            image_io.save_image(encoded_images[1], "share_g.png", output_directory) #Save the green share
+            image_io.save_image(encoded_images[2], "share_b.png", output_directory) #Save the blue share
+
+        except Exception as e:
+            print(e)
+            fail_saving()
+
 
     elif (scheme == "feistel"): #encode the image with feistel
-        c.basicEncode(image_files[0]) #Break the input image into R,G,B images (and store them in the buffer)
-        c.feistelEncode() #Apply feistel cipher to each image in the buffer
+        try:
+            c.basicEncode(image_files[0]) #Break the input image into R,G,B images (and store them in the buffer)
+            c.feistelEncode() #Apply feistel cipher to each image in the buffer
+        except Exception as e:
+            print(e)
+            fail_crypto()
 
         #Save the encoded images
-        encoded_images = c.returnBuffer()
-        image_io.save_image(encoded_images[0], "share_r.png", output_directory) #Save the red share
-        image_io.save_image(encoded_images[1], "share_g.png", output_directory) #Save the green share
-        image_io.save_image(encoded_images[2], "share_b.png", output_directory) #Save the blue share
+        try:
+            encoded_images = c.returnBuffer()
+            image_io.save_image(encoded_images[0], "share_r.png", output_directory) #Save the red share
+            image_io.save_image(encoded_images[1], "share_g.png", output_directory) #Save the green share
+            image_io.save_image(encoded_images[2], "share_b.png", output_directory) #Save the blue share
 
+        except Exception as e:
+            print(e)
+            fail_saving()
 
 else: #otherwise load and decode shares based on scheme
 
@@ -152,74 +180,97 @@ else: #otherwise load and decode shares based on scheme
         share_list = load_RGB_shares() #Load each share in the share directory
         c.bufferImport(share_list) #Add the shares to the buffer
 
-        c.setKey(key) #Set the key for decoding
-        c.dekeyBuffer() #Undo the XOR cipher for each image in the buffer
-        c.basicDecode() #Remerge the R,G,B shares in the buffer to get the original image
+        try:
+            c.setKey(key) #Set the key for decoding
+            c.dekeyBuffer() #Undo the XOR cipher for each image in the buffer
+            c.basicDecode() #Remerge the R,G,B shares in the buffer to get the original image
+
+        except Exception as e:
+            print(e)
+            fail_crypto()
 
         #Save the decoded image
         filename = "decodedImage.png"
 
-        if output_directory is not None: #If the output directory exists and already contains a decodedImage, add a number to the end of the filename
-            if os.path.isfile(os.path.join(output_directory, "decodedImage.png")):
-                i = 1
-                while os.path.isfile(os.path.join(output_directory, f"decodedImage{i}.png")):
-                    i += 1
+        try:
+            if output_directory is not None: #If the output directory exists and already contains a decodedImage, add a number to the end of the filename
+                if os.path.isfile(os.path.join(output_directory, "decodedImage.png")):
+                    i = 1
+                    while os.path.isfile(os.path.join(output_directory, f"decodedImage{i}.png")):
+                        i += 1
 
-                filename = f"decodedImage{i}.png"
-                print(f"set filename to {filename}")
+                    filename = f"decodedImage{i}.png"
+                    print(f"set filename to {filename}")
 
 
-        image_io.save_image(c.returnBuffer()[0], filename, output_directory)
+            image_io.save_image(c.returnBuffer()[0], filename, output_directory)
+
+        except Exception as e:
+            print(e)
+            fail_saving()
 
     elif (scheme == "aes"):
 
         shares_list = load_RGB_shares() #Load each share in the share directory
         c.bufferImport(shares_list) #Add the shares to the buffer
 
-        c.aesDecryptBuffer() #Undo the aes encryption
-        c.basicDecode() #Merge r,g,b shares back into one image
+        try:
+            c.aesDecryptBuffer() #Undo the aes encryption
+            c.basicDecode() #Merge r,g,b shares back into one image
+        except Exception as e:
+            print(e)
+            fail_crypto()
 
         #Save the decoded image
         filename = "decodedImage.png"
 
-        if output_directory is not None: #If the output directory exists and already contains a decodedImage, add a number to the end of the filename
-            if os.path.isfile(os.path.join(output_directory, "decodedImage.png")):
-                i = 1
-                while os.path.isfile(os.path.join(output_directory, f"decodedImage{i}.png")):
-                    i += 1
+        try:
+            if output_directory is not None: #If the output directory exists and already contains a decodedImage, add a number to the end of the filename
+                if os.path.isfile(os.path.join(output_directory, "decodedImage.png")):
+                    i = 1
+                    while os.path.isfile(os.path.join(output_directory, f"decodedImage{i}.png")):
+                        i += 1
 
-                filename = f"decodedImage{i}.png"
-                print(f"set filename to {filename}")
+                    filename = f"decodedImage{i}.png"
+                    print(f"set filename to {filename}")
 
+            image_io.save_image(c.returnBuffer()[0], filename, output_directory)
 
-
-        image_io.save_image(c.returnBuffer()[0], filename, output_directory)
-
+        except Exception as e:
+            print(e)
+            fail_saving()
 
     elif (scheme == "feistel"):
 
         shares_list = load_RGB_shares() #Load each share in the share directory
         c.bufferImport(shares_list) #Add the shares to the buffer
 
-        c.feistelDecode() #Undo the feistel cipher
-        c.basicDecode() #Merge r,g,b shares back into one image
+        try:
+            c.feistelDecode() #Undo the feistel cipher
+            c.basicDecode() #Merge r,g,b shares back into one image
+
+        except Exception as e:
+            print(e)
+            fail_crypto()
 
         #Save the decoded image
         filename = "decodedImage.png"
 
-        if output_directory is not None: #If the output directory exists and already contains a decodedImage, add a number to the end of the filename
-            if os.path.isfile(os.path.join(output_directory, "decodedImage.png")):
-                i = 1
-                while os.path.isfile(os.path.join(output_directory, f"decodedImage{i}.png")):
-                    i += 1
+        try:
+            if output_directory is not None: #If the output directory exists and already contains a decodedImage, add a number to the end of the filename
+                if os.path.isfile(os.path.join(output_directory, "decodedImage.png")):
+                    i = 1
+                    while os.path.isfile(os.path.join(output_directory, f"decodedImage{i}.png")):
+                        i += 1
 
-                filename = f"decodedImage{i}.png"
-                print(f"set filename to {filename}")
+                    filename = f"decodedImage{i}.png"
+                    print(f"set filename to {filename}")
 
+            image_io.save_image(c.returnBuffer()[0], filename, output_directory)
 
-
-        image_io.save_image(c.returnBuffer()[0], filename, output_directory)
-
+        except Exception as e:
+            print(e)
+            fail_saving()
 
 
 #Finally print out a graph showing each portion of the data flow
