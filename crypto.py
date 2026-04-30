@@ -46,6 +46,7 @@ class crypto:
         self.key = key
         self.buffer = []
         self.info = info
+        self.fRound = 3
 
     def basicEncode(self, source: Image):
         """
@@ -287,9 +288,12 @@ class crypto:
         """
         self.buffer = []
 
+    def setFeistelRounds(self, rounds):
+        self.fRound = rounds
+
     def feistelEncode(self):
         """
-        Encrypts each image in the buffer with a 3-round Feistel cipher.
+        Encrypts each image in the buffer with a n-round Feistel cipher.
         Operates at the byte level for each image channel. Updates buffer in-place.
         """
         if not self.key:
@@ -303,7 +307,7 @@ class crypto:
             h = sha256(round_key).digest()
             return bytes([b ^ h[i % len(h)] for i, b in enumerate(data)])
 
-        feistel_rounds = 3
+        feistel_rounds = self.fRound
         key_bytes = self.key if isinstance(
             self.key, bytes) else self.key.encode('utf-8')
         temBuffer = []
@@ -346,7 +350,7 @@ class crypto:
             h = sha256(round_key).digest()
             return bytes([b ^ h[i % len(h)] for i, b in enumerate(data)])
 
-        feistel_rounds = 3
+        feistel_rounds = self.fRound
         key_bytes = self.key if isinstance(
             self.key, bytes) else self.key.encode('utf-8')
         temBuffer = []
