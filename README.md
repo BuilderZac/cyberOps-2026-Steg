@@ -1,5 +1,5 @@
 # Visual Cryptography Group Project (Python CLI)  
-## Project Idea: Secret Image Sharing  
+## Project Idea: Secret Image Sharing to Demo Cryptographic Concepts  
 
 Build a command-line tool that splits a secret image into multiple meaningless-looking shares. Individually, the shares reveal nothing. When enough shares are combined, the original image is revealed.
 
@@ -23,7 +23,7 @@ Combine shares to reconstruct
 ## Person 1 — Algorithm & Cryptography - Zac
 ### Responsibilities:
 Visual cryptography logic  
-Pixel expansion rules  
+Cipher Implimentation
 Share generation  
 Reconstruction logic  
 
